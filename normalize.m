@@ -1,5 +1,6 @@
 function [vecs_n, mu, sigma] = normalize(vecs)
-    num_devices = min(size(vecs));
+    dims = size(vecs);
+    num_devices = dims(2);
     mu = zeros(num_devices, 1);
     sigma = zeros(num_devices, 1);
     for k = 1:num_devices

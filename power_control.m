@@ -13,7 +13,7 @@ function [p, eta] = power_control(h, sigma_z, T)
             sum1 = sum1 + P_max(i)*abs(h(i))^2;
             sum2 = sum2 + sqrt(P_max(i))*abs(h(i));
         end
-        eta_tilde(k) = ((sigma_z^2+T*sum1)/T/sum2)^2;
+        eta_tilde(k) = ((sigma_z^2/T+sum1)/sum2)^2;
     end
     eta = min(eta_tilde);
     
