@@ -1,19 +1,19 @@
 clc
 clear
 % Parameters
-budget = 2000;
+budget = 1000;
 num_devices = 4;
 num_samples = 1000;
 num_tests = 10;
 sigma_w = 1; % Dataset noise
-sigma_z = 1; % Channel noise
+sigma_z = 10; % Channel noise
 true_beta = [2;1];
 [x, y] = generateDataset(true_beta(1), true_beta(2), num_samples, sigma_w);
 [X, Y] = splitDataset(x, y, num_devices);
 
 % Strong convexity and Lipschitz smoothness
-m = num_samples+sum(x.^2)-sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x).^2+sum(x.^2)^2);
-L = num_samples+sum(x.^2)+sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x).^2+sum(x.^2)^2);
+m = num_samples+sum(x.^2)-sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x)^2+sum(x.^2)^2);
+L = num_samples+sum(x.^2)+sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x)^2+sum(x.^2)^2);
 
 % Initialize
 % beta_g_init = 10*rand(2,1);
@@ -21,12 +21,13 @@ beta_g_init = [0; 0];
 
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
-num_tx = 1;
+num_tx = 8;
 mean_err_tests = 0;
 mean_loss = zeros(budget, 1);
 for t = 1:num_tests
+    t
     step_length = 1/(4*L);
-    remaining_budget = num_tx*budget;
+    remaining_budget = budget;
     loss = zeros(budget, 1);
     beta_g = beta_g_init;
     mean_err = 0;
@@ -81,5 +82,5 @@ figure;
 plot(x, y, ".")
 hold on;
 plot(x, y_hat, 'LineWidth', 2);
-hold on;
-plot(x, y_true, 'LineWidth', 2);
+% hold on;
+% plot(x, y_true, 'LineWidth', 2);

@@ -3,8 +3,8 @@ function [rcv_vec] = otaComputation(grad_l, sigma_z, num_tx)
     num_devices = dimensions(2);
     % Generate channel
     h = generateH(num_devices);
-    %Normalize
-    [grad_l_n, mu, sigma] = normalize(grad_l);
+    %Fix vector norm to support power control
+    [grad_l_n, norms] = setVectorNorms(grad_l, sqrt(2));
 
     grad_g = zeros(2, 1);
     %Generate power control
@@ -17,8 +17,8 @@ function [rcv_vec] = otaComputation(grad_l, sigma_z, num_tx)
             grad_g(j) = grad_g(j) + real(grad_l_n(j,:)*(abs(h).*sqrt(p)) + z)/(num_devices*sqrt(eta));
         end
     end
-    grad_g = grad_g/num_tx;
+    rcv_vec = grad_g/num_tx;
     
-    %Denormalize
-    rcv_vec = denormalize(grad_g, mu, sigma);
+    %Lengthen to perserve original norm
+    rcv_vec = rcv_vec*mean(norms)/sqrt(2);
 end

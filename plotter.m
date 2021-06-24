@@ -1,9 +1,9 @@
 clear
 clc
 
-num_tx_list = [1 10];
+num_tx_list = [1 2 4 8];
 num_tests = length(num_tx_list);
-budget = 2000;
+budget = 1000;
 sigma_z = 10;
 path = "data/";
 
@@ -22,3 +22,6 @@ for i = 1:num_tests
     plot(start:finish, losses(start:finish, i))
     hold on;
 end
+xlabel("Communication round")
+ylabel("Least-squares loss")
+legend("M=1", "M=2", "M=4", "M=8")
