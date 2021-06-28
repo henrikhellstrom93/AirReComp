@@ -6,7 +6,7 @@ num_devices = 4;
 num_samples = 1000;
 num_tests = 10;
 sigma_w = 1; % Dataset noise
-sigma_z = 6; % Channel noise
+sigma_z = 5; % Channel noise
 true_beta = [2;1];
 [x, y] = generateDataset(true_beta(1), true_beta(2), num_samples, sigma_w);
 [X, Y] = splitDataset(x, y, num_devices);
@@ -19,6 +19,8 @@ L = num_samples+sum(x.^2)+sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x)^2+
 % beta_g_init = 10*rand(2,1);
 beta_g_init = [0; 0];
 
+% Generate channel
+h = generateH(num_devices);
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
 mean_err_tests = 0;
@@ -38,6 +40,7 @@ for t = 1:num_tests
     num_tx = 1;
 
     r = 1;
+    c = optimalSchedule(budget, h, sigma_z, step_length, m, L);
     while remaining_budget > 0
         %Select number of uplink transmissions
         if retransmission_schedule(num_tx) > 0
@@ -53,7 +56,7 @@ for t = 1:num_tests
         grad_l = getGradient(X, Y, beta_g);
 
         %Transmit gradients over MAC
-        rcv_grad = otaComputation(grad_l, sigma_z, num_tx);
+        rcv_grad = otaComputation(grad_l, sigma_z, num_tx, h);
         mean_err = mean_err + abs(mean(grad_l, 2)-rcv_grad);
         % Model update
         beta_g = beta_g - step_length*rcv_grad;

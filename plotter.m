@@ -8,7 +8,7 @@ if schedule == "simple"
     num_tests = num_tests + 1;
 end
 budget = 1000;
-sigma_z = 6;
+sigma_z = 5;
 path = "data/";
 
 losses = zeros(budget, num_tests);

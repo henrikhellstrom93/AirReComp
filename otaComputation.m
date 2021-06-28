@@ -1,8 +1,6 @@
-function [rcv_vec] = otaComputation(grad_l, sigma_z, num_tx)
+function [rcv_vec] = otaComputation(grad_l, sigma_z, num_tx, h)
     dimensions = size(grad_l);
     num_devices = dimensions(2);
-    % Generate channel
-    h = generateH(num_devices);
     %Fix vector norm to support power control
     [grad_l_n, norms] = setVectorNorms(grad_l, sqrt(2));
 
