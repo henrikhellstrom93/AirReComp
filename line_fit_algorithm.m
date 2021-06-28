@@ -6,7 +6,7 @@ num_devices = 4;
 num_samples = 1000;
 num_tests = 10;
 sigma_w = 1; % Dataset noise
-sigma_z = 10; % Channel noise
+sigma_z = 6; % Channel noise
 true_beta = [2;1];
 [x, y] = generateDataset(true_beta(1), true_beta(2), num_samples, sigma_w);
 [X, Y] = splitDataset(x, y, num_devices);
@@ -21,20 +21,34 @@ beta_g_init = [0; 0];
 
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
-num_tx = 8;
 mean_err_tests = 0;
 mean_loss = zeros(budget, 1);
+schedule_type = "simple";
+max_tx = 8;
+
 for t = 1:num_tests
     t
+    %Initialization
     step_length = 1/(4*L);
     remaining_budget = budget;
     loss = zeros(budget, 1);
     beta_g = beta_g_init;
     mean_err = 0;
+    retransmission_schedule = setTransmissionSchedule(schedule_type, max_tx, budget);
+    num_tx = 1;
 
     r = 1;
     while remaining_budget > 0
-        % Least-squares loss on global dataset
+        %Select number of uplink transmissions
+        if retransmission_schedule(num_tx) > 0
+            retransmission_schedule(num_tx) = retransmission_schedule(num_tx) - 1;
+        else
+            while retransmission_schedule(num_tx) <= 0
+                num_tx = num_tx + 1;
+            end
+        end
+        
+        %Least-squares loss on global dataset
         loss(r) = sum((y-x*beta_g(1)-beta_g(2)).^2);
         grad_l = getGradient(X, Y, beta_g);
 
@@ -43,7 +57,6 @@ for t = 1:num_tests
         mean_err = mean_err + abs(mean(grad_l, 2)-rcv_grad);
         % Model update
         beta_g = beta_g - step_length*rcv_grad;
-        %beta_g = beta_g - step_length*randn(2, 1);
 
         %End condition
         remaining_budget = remaining_budget - num_tx;
@@ -71,8 +84,11 @@ plot(start:finish, loss(start:finish))
 hold on;
 plot(start:finish, true_loss*ones(finish-start+1, 1))
 legend("Fitted", "True line")
-filename = append("data/", "num_tx=", int2str(num_tx), "sigma_z=", int2str(sigma_z))
-
+if schedule_type == "constant"
+    filename = append("data/", "num_tx=", int2str(num_tx), "sigma_z=", int2str(sigma_z))
+elseif schedule_type == "simple"
+    filename = append("data/", "schedule=simple")
+end
 save(filename, 'loss')
 
 %%
