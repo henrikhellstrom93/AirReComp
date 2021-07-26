@@ -21,17 +21,24 @@ beta_g_init = [0; 0];
 
 % Generate channel
 h = generateH(num_devices);
+
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
 mean_err_tests = 0;
 mean_loss = zeros(budget, 1);
-schedule_type = "simple";
-max_tx = 8;
+schedule_type = "constant";
+step_length = 1/(4*L);
+max_tx = 1;
+calculate_bound = true;
+if calculate_bound == true
+    sigma_gradient = calculateSigmaG(length(true_beta), budget, X, Y, beta_g_init, step_length);
+end
+
+[c, opt_schedule] = optimalSchedule(budget, h, sigma_z, step_length, m, L, sigma_gradient, beta_g_init, true_beta);
 
 for t = 1:num_tests
     t
     %Initialization
-    step_length = 1/(4*L);
     remaining_budget = budget;
     loss = zeros(budget, 1);
     beta_g = beta_g_init;
@@ -40,7 +47,6 @@ for t = 1:num_tests
     num_tx = 1;
 
     r = 1;
-    c = optimalSchedule(budget, h, sigma_z, step_length, m, L);
     while remaining_budget > 0
         %Select number of uplink transmissions
         if retransmission_schedule(num_tx) > 0
@@ -60,13 +66,13 @@ for t = 1:num_tests
         mean_err = mean_err + abs(mean(grad_l, 2)-rcv_grad);
         % Model update
         beta_g = beta_g - step_length*rcv_grad;
-
+        
         %End condition
         remaining_budget = remaining_budget - num_tx;
         r = r + 1;
         
         %Update step size
-        step_length = step_length*5^(-1/budget);
+        %step_length = step_length*5^(-1/budget);
     end
     mean_err_tests = mean_err_tests + mean_err/r;
 

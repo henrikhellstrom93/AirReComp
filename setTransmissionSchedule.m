@@ -1,3 +1,5 @@
+%The schedule is a vector of length max_tx where entry i is how many
+%communication rounds will have i uplink transmissions.
 function [schedule] = setTransmissionSchedule(type, max_tx, budget)
     schedule = zeros(max_tx,1);
     if type == "simple"
