@@ -1,9 +1,13 @@
-%Returns 2xnum_devices gradient
-function [grad_l] = getGradient(X, Y, beta_g)
-    dims = size(X);
-    num_devices = dims(2);
-    num_samples = dims(1);
-    grad_l = zeros(2, num_devices);
-    grad_l(1,:) = 2*sum((beta_g(1)*X+beta_g(2)-Y).*X)/num_samples;
-    grad_l(2,:) = 2*sum((beta_g(1)*X+beta_g(2)-Y))/num_samples;
+% Returns (d+1) x K matrix consisting of K gradients of dimension (d+1)
+function [grad_l] = getGradient(X_struct, y_struct, beta_g)
+    dims = size(X_struct);
+    D_k = dims(1);
+    d = dims(2)-1;
+    K = dims(3);
+    grad_l = zeros(d+1, K);
+    for k = 1:K
+        X = X_struct(:,:,k);
+        y = y_struct(:,k);
+        grad_l(:,k) = 2*X'*(X*beta_g-y)/D_k;
+    end
 end
