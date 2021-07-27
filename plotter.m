@@ -1,14 +1,14 @@
 clear
 clc
 
-num_tx_list = [1 2 4 8];
-schedule = "simple";
+num_tx_list = [1 2 4 8 20 50];
+schedule = "constant";
 num_tests = length(num_tx_list);
 if schedule == "simple"
     num_tests = num_tests + 1;
 end
-budget = 1000;
-sigma_z = 5;
+budget = 500;
+sigma_z = 100;
 path = "data/";
 
 losses = zeros(budget, num_tests);
@@ -34,3 +34,5 @@ end
 xlabel("Communication round")
 ylabel("Least-squares loss")
 legend("M=1", "M=2", "M=4", "M=8", "schedule")
+
+losses(500,:)

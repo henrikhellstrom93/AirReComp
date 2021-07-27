@@ -1,12 +1,12 @@
 clc
 clear
 % Parameters
-budget = 1000;
-num_devices = 4;
+budget = 2000;
+num_devices = 10;
 num_samples = 1000;
 num_tests = 10;
 sigma_w = 1; % Dataset noise
-sigma_z = 5; % Channel noise
+sigma_z = 100; % Channel noise
 true_beta = [2;1];
 [x, y] = generateDataset(true_beta(1), true_beta(2), num_samples, sigma_w);
 [X, Y] = splitDataset(x, y, num_devices);
@@ -14,6 +14,10 @@ true_beta = [2;1];
 % Strong convexity and Lipschitz smoothness
 m = num_samples+sum(x.^2)-sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x)^2+sum(x.^2)^2);
 L = num_samples+sum(x.^2)+sqrt(num_samples^2-2*num_samples*sum(x.^2)+4*sum(x)^2+sum(x.^2)^2);
+
+% Normalized loss
+m = m/num_samples;
+L = L/num_samples;
 
 % Initialize
 % beta_g_init = 10*rand(2,1);
@@ -29,12 +33,12 @@ mean_loss = zeros(budget, 1);
 schedule_type = "constant";
 step_length = 1/(4*L);
 max_tx = 1;
-calculate_bound = true;
+calculate_bound = false;
 if calculate_bound == true
     sigma_gradient = calculateSigmaG(length(true_beta), budget, X, Y, beta_g_init, step_length);
+    [c, opt_schedule] = optimalSchedule(budget, h, sigma_z, step_length, m, L, sigma_gradient, beta_g_init, true_beta);
 end
 
-[c, opt_schedule] = optimalSchedule(budget, h, sigma_z, step_length, m, L, sigma_gradient, beta_g_init, true_beta);
 
 for t = 1:num_tests
     t
@@ -58,7 +62,7 @@ for t = 1:num_tests
         end
         
         %Least-squares loss on global dataset
-        loss(r) = sum((y-x*beta_g(1)-beta_g(2)).^2);
+        loss(r) = sum((y-x*beta_g(1)-beta_g(2)).^2)/length(y);
         grad_l = getGradient(X, Y, beta_g);
 
         %Transmit gradients over MAC
@@ -85,7 +89,7 @@ mean_loss = mean_loss/num_tests;
 loss = mean_loss;
 
 %Plotting
-true_loss = sum((y-x*true_beta(1)-true_beta(2)).^2);
+true_loss = sum((y-x*true_beta(1)-true_beta(2)).^2)/num_samples;
 start = 10;
 finish = budget;
 figure;

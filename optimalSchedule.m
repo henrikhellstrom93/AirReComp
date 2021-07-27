@@ -19,20 +19,11 @@ function [c, schedule] = optimalSchedule(budget, h, sigma_z, step_length, m, L, 
 
     cvx_begin quiet
         variable schedule(n)
-        objective = L/2*prod(c.^schedule)*r_zero;
+        objective = L/2*r_zero;
         for i = 1:n
-            r_zero
-            outer_constant = step_length^2*L
-            sum_fraction = 1/(eta(i)*(1-c(i)))
-            parenthesis = sigma_g'*sigma_g*sum(p.*abs(h).^2)+d*sigma_z^2/(i*num_devices)
-            sigma_g'*sigma_g*sum(p.*abs(h).^2)
-            if i < 100
-                product = prod(c(i+1:n).^(schedule(i+1:n)))
-            else
-                product = 1;
-            end
-            
-            objective = objective + outer_constant*sum_fraction*parenthesis*product;
+            objective = objective*c(i)^schedule(i);
+            parenthesis = sigma_g'*sigma_g*sum(p.*abs(h).^2)+d*sigma_z^2/(i*num_devices);
+            objective = objective + L*step_length^2/(2*num_devices*eta(i))*parenthesis/(1-c(i));
         end
         minimize( objective )
         subject to
@@ -40,9 +31,5 @@ function [c, schedule] = optimalSchedule(budget, h, sigma_z, step_length, m, L, 
             schedule >= zeros(n,1)
     cvx_end
     
-    for i = 1:n
-        if schedule(i) < 1e-5
-            schedule(i) = 0;
-        end
-    end
+    schedule = round(schedule);
 end
