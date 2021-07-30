@@ -2,11 +2,10 @@ clc
 clear
 % Parameters
 budget = 100;
-K = 10; % Number of devices
+K = 2; % Number of devices
 D = 1000; % Number of samples
-sigma_w = 4; % Dataset noise
-sigma_z = 1; % Channel noise
-true_beta = [2;1;1;1;1;1;1]; % beta(1) = constant term
+sigma_w = 3; % Dataset noise
+true_beta = [2;1]; % beta(1) = constant term
 d = length(true_beta)-1; % input data dimension
 [X, y] = generateDataset(true_beta, D, sigma_w);
 [X_struct, y_struct] = splitDataset(X, y, K);
@@ -28,10 +27,11 @@ h = generateH(K);
 
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
+sigma_z = 1; % Channel noise
 num_tests = 1;
 mean_err_tests = 0;
 mean_loss = zeros(budget, 1);
-step_length = 0.001;
+step_length = 0.04;
 schedule_type = "constant";
 c_2 = 0;
 T = 0;
@@ -71,11 +71,6 @@ for t = 1:num_tests
         %Least-squares loss on global dataset
         loss(r) = (X*beta_g-y)'*(X*beta_g-y)/D;
         grad_l = getGradient(X_struct, y_struct, beta_g);
-        if r == 1
-            beta_g
-            grad_l(:,1)
-            true_beta
-        end
 
         %Transmit gradients over MAC
         rcv_grad = otaComputation(grad_l, sigma_z, num_tx, h);
@@ -86,9 +81,6 @@ for t = 1:num_tests
         %End condition
         remaining_budget = remaining_budget - num_tx;
         r = r + 1;
-        
-        %Update step size
-        %step_length = step_length*5^(-1/budget);
     end
 
     %Fill remaining losses with straight line
@@ -101,14 +93,15 @@ loss(end)
 
 %Plotting
 plotting = true;
-true_loss = (X*true_beta-y)'*(X*true_beta-y)/D;
+optimal_beta = (X'*X)\X'*y;
+optimal_loss = (X*true_beta-y)'*(X*true_beta-y)/D;
 start = 1;
 finish = budget;
 if plotting == true
     figure;
     plot(start:finish, loss(start:finish))
     hold on;
-    plot(start:finish, true_loss*ones(finish-start+1, 1))
+    plot(start:finish, optimal_loss*ones(finish-start+1, 1))
     legend("Fitted", "True line")
 end
 if schedule_type == "constant"
