@@ -3,7 +3,11 @@ function [grad_l] = getGradient(X_struct, y_struct, beta_g)
     dims = size(X_struct);
     D_k = dims(1);
     d = dims(2)-1;
-    K = dims(3);
+    if length(dims) > 2
+        K = dims(3);
+    else
+        K = 1;
+    end
     grad_l = zeros(d+1, K);
     for k = 1:K
         X = X_struct(:,:,k);
