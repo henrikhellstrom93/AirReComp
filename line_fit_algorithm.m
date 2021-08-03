@@ -1,11 +1,11 @@
 clc
 clear
 % Parameters
-budget = 10000;
+budget = 1000;
 K = 10; % Number of devices
 D = 1000; % Number of samples
 sigma_w = 3; % Dataset noise
-true_beta = [2;1]; % beta(1) = constant term
+true_beta = [-2;1]; % beta(1) = constant term
 d = length(true_beta)-1; % input data dimension
 [X, y] = generateDataset(true_beta, D, sigma_w);
 [X_struct, y_struct] = splitDataset(X, y, K);
@@ -29,16 +29,18 @@ h = generateH(K);
 
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
-sigma_z = 1; % Channel noise
-M = 1;
-[table1, table2, table3] = power_control_lookup(h, 0, M, K, m, L);
-num_tests = 1;
+sigma_z = sqrt(2*K); % Channel noise
+M = 16;
+alpha = 1;
+% [table1, table2, table3] = power_control_lookup(h, 0, M, K, m, L);
+num_tests = 10;
 mean_err_tests = 0;
 mean_loss = zeros(budget, 1);
-grad_history = zeros(ceil(budget/M), 1);
-% step_length = 0.02;
+grad_history = zeros(ceil(budget/M), d+1);
+norm_history = zeros(ceil(budget/M), 1);
+% step_length = 0.001;
 step_length = 1/L;
-step_reduce = 0.9;
+step_reduce = 1;
 schedule_type = "constant";
 c_2 = 0;
 T = 0;
@@ -54,6 +56,9 @@ elseif schedule_type == "cutoff"
     T = 20;
     c_2 = 1;
 end
+M_list = [1 2 4 8 16 32]';
+c = getC(M_list, h, m, L, sigma_z, step_length);
+final_convergence = c.^(budget./(alpha+M_list))*10;
 retransmission_schedule = setTransmissionSchedule(schedule_type, budget, c_1, c_2, T);
 calculate_bound = false;
 if calculate_bound == true
@@ -71,7 +76,7 @@ for t = 1:num_tests
     num_tx = 1;
 
     r = 1;
-    while remaining_budget > 0
+    while remaining_budget > retransmission_schedule(r)
         %Select number of uplink transmissions
         num_tx = retransmission_schedule(r);
         
@@ -79,16 +84,29 @@ for t = 1:num_tests
         loss(r) = (X*beta_g-y)'*(X*beta_g-y)/D;
         grad_l = getGradient(X_struct, y_struct, beta_g);
 
+        if num_tx == 0
+            r = r + 1;
+            if r > budget
+                break
+            end
+            continue
+        end
+        
         %Transmit gradients over MAC
-        rcv_grad = otaComputation(grad_l, sigma_z, num_tx, h);
+        [rcv_grad, rcv_grad_unnormalized] = otaComputation(grad_l, sigma_z, num_tx, h);
+        grad_history(r, :) = rcv_grad;
+        norm_history(r) = norm(rcv_grad);
         
         % Model update
         beta_g = beta_g - step_length*rcv_grad;
-        grad_history(r) = rcv_grad(1);
         
         %End condition
-        remaining_budget = remaining_budget - num_tx;
+        cost = alpha + num_tx;
+        remaining_budget = remaining_budget - cost;
         r = r + 1;
+        if r > budget
+            break
+        end
         if mod(r, 300) == 0
             step_length = step_length*step_reduce;
         end
@@ -106,7 +124,7 @@ loss(end);
 plotting = true;
 optimal_beta = (X'*X)\X'*y;
 optimal_loss = (X*optimal_beta-y)'*(X*optimal_beta-y)/D;
-start = 10;
+start = 100;
 finish = budget;
 if plotting == true
     figure;
@@ -116,7 +134,7 @@ if plotting == true
     legend("OTA FL fit", "Optimal fit")
 end
 if schedule_type == "constant"
-    filename = append("data/", "num_tx=", int2str(num_tx), "sigma_z=", int2str(sigma_z), "budget=", int2str(budget));
+    filename = append("data/", "num_tx=", int2str(c_1), "sigma_z=", int2str(sigma_z), "budget=", int2str(budget), "alpha=", num2str(alpha));
 else
     filename = append("data/", append("schedule=", schedule_type));
 end
@@ -125,7 +143,7 @@ save(filename, 'loss', 'retransmission_schedule')
 %Printing
 fit_loss = mean(loss(budget/M-budget/M*0.05:budget/M));
 disp([ 'Loss gap: ', num2str(fit_loss-optimal_loss) ])
-disp([ 'rcv_grad size: ', num2str( abs( rcv_grad(1) ) ) ])
+% disp([ 'rcv_grad size: ', num2str( abs( rcv_grad(1) ) ) ])
 
 
 %%

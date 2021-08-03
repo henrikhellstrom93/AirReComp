@@ -1,15 +1,16 @@
 clear
 clc
 
-num_tx_list = [1 10];
+num_tx_list = [1 2 4];
 % num_tx_list = [1 2];
 %schedules = ["constant", "constant", "constant", "constant", "lin_increase", "lin_decrease", "cutoff"];
-schedules = ["constant", "constant"]
+schedules = ["constant", "constant", "constant"]
 % schedules = ["constant", "constant"]
 num_curves = length(schedules);
-budget = 10000;
-sigma_z = 1;
-padding = true; %Pads the data to show them in the same timescale
+budget = 1000;
+sigma_z = 9;
+alpha = 2;
+padding = false; %Pads the data to show them in the same timescale
 path = "data/";
 
 losses = zeros(budget, num_curves);
@@ -19,7 +20,7 @@ for i = 1:num_curves
         filename = append(path, append("schedule=", schedules(i)))
     else
         num_tx = num_tx_list(i);
-        filename = append(path, "num_tx=", int2str(num_tx), "sigma_z=", int2str(sigma_z), "budget=", int2str(budget));
+        filename = append(path, "num_tx=", int2str(num_tx), "sigma_z=", int2str(sigma_z), "budget=", int2str(budget), "alpha=", num2str(alpha));
     end
     a = load(filename);
     losses(:,i) = a.loss;
@@ -31,6 +32,9 @@ for i = 1:num_curves
         while padding_index <= budget
             if schedule(schedule_index) == 0
                 schedule_index = schedule_index + 1;
+                if schedule_index > budget
+                    break
+                end
             elseif schedule(schedule_index) == 1
                 padded_loss(padding_index) = a.loss(schedule_index);
                 schedule_index = schedule_index + 1;
@@ -50,7 +54,7 @@ for i = 1:num_curves
     end
 end
 
-start = 1000;
+start = 1;
 finish = budget;
 
 for i = 1:num_curves
@@ -59,6 +63,7 @@ for i = 1:num_curves
 end
 xlabel("Communication round")
 ylabel("Least-squares loss")
-legend("M=1", "M=10", "M=4", "cutoff")
+legend("M=1", "M=2", "M=4", "M=8", "M=16", "M=32")
+ylim([24, 66])
 
 losses(budget,:)

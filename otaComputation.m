@@ -1,5 +1,5 @@
 % Returns (d+1) x 1 vector
-function [rcv_vec] = otaComputation(grad_l, sigma_z, num_tx, h)
+function [rcv_vec, rcv_vec_unnormalized] = otaComputation(grad_l, sigma_z, num_tx, h)
     dims = size(grad_l);
     d = dims(1)-1;
     K = dims(2);
@@ -21,5 +21,6 @@ function [rcv_vec] = otaComputation(grad_l, sigma_z, num_tx, h)
     rcv_vec = grad_g/num_tx;
     
     %Change length to perserve original norm
+    rcv_vec_unnormalized = rcv_vec;
     rcv_vec = rcv_vec*mean(norms)/new_norm;
 end

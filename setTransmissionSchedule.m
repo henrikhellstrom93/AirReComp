@@ -6,6 +6,9 @@ function [schedule] = setTransmissionSchedule(type, budget, c_1, c_2, T)
     i = 1;
     while rem_budget > 0
         if type == "constant"
+            if rem_budget < ceil(c_1)
+                break
+            end
             schedule(i) = ceil(c_1);
         elseif type == "lin_increase"
             schedule(i) = ceil(c_1*i);
