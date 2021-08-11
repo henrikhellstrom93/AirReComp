@@ -1,15 +1,15 @@
 clear
 clc
 
-num_tx_list = [1 2 4];
+num_tx_list = [1 2 4 8 16 32];
 % num_tx_list = [1 2];
 %schedules = ["constant", "constant", "constant", "constant", "lin_increase", "lin_decrease", "cutoff"];
-schedules = ["constant", "constant", "constant"]
+schedules = ["constant", "constant", "constant", "constant", "constant", "constant"]
 % schedules = ["constant", "constant"]
 num_curves = length(schedules);
 budget = 1000;
-sigma_z = 9;
-alpha = 2;
+sigma_z = floor(sqrt(20));
+alpha = 1;
 padding = false; %Pads the data to show them in the same timescale
 path = "data/";
 
@@ -55,7 +55,7 @@ for i = 1:num_curves
 end
 
 start = 1;
-finish = budget;
+finish = budget/(alpha+1);
 
 for i = 1:num_curves
     plot(start:finish, losses(start:finish, i))
@@ -64,6 +64,6 @@ end
 xlabel("Communication round")
 ylabel("Least-squares loss")
 legend("M=1", "M=2", "M=4", "M=8", "M=16", "M=32")
-ylim([24, 66])
+ylim([9, 19])
 
 losses(budget,:)
