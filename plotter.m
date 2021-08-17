@@ -1,10 +1,10 @@
 clear
 clc
 
-num_tx_list = [1 2 4 8 16 32];
+num_tx_list = [1 2 4 8];
 % num_tx_list = [1 2];
 %schedules = ["constant", "constant", "constant", "constant", "lin_increase", "lin_decrease", "cutoff"];
-schedules = ["constant", "constant", "constant", "constant", "constant", "constant"]
+schedules = ["constant", "constant", "constant", "constant", "cutoff"]
 % schedules = ["constant", "constant"]
 num_curves = length(schedules);
 budget = 1000;
@@ -63,7 +63,7 @@ for i = 1:num_curves
 end
 xlabel("Communication round")
 ylabel("Least-squares loss")
-legend("M=1", "M=2", "M=4", "M=8", "M=16", "M=32")
-ylim([9, 19])
+legend("M=1", "M=2", "M=4", "M=8", "cutoff", "M=32")
+ylim([9, 100])
 
 losses(budget,:)

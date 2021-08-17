@@ -1,7 +1,7 @@
 clc
 clear
 % Parameters
-budget = 2000;
+budget = 1000;
 K = 10; % Number of devices
 D = 1000; % Number of samples
 sigma_w = 3; % Dataset noise
@@ -32,10 +32,7 @@ for i = 1:K
     L_list(i) = L_k;
 end
 L2 = mean(L_list);
-
-l = 1000;
-psd_matrix = l*eye(d+1)-2*(X')*X/D;
-
+        
 % Initialize
 % beta_g_init = 10*rand(2,1);
 beta_g_init = zeros(d+1,1);
@@ -44,19 +41,55 @@ beta_g_init = zeros(d+1,1);
 h = generateH(K);
 
 %Predict correct M
-M_list = [1 2 4 8 16 32]';
-step_length = 1/L;
+M_list = [1 2 4 8 16]';
+error_post_convergence = zeros(length(M_list), 1);
+step_length = zeros(length(M_list), 1);
+for i = 1:length(M_list)
+    [p, eta] = power_control(h, sigma_z, M_list(i));
+    %step_length(i) = sqrt(eta)/L*sum(sqrt(p).*abs(h))/sum(p.*abs(h).^2);
+    step_length(i) = 1/L;
+    error_post_convergence(i) = step_length(i)/2*(K*sqrt(eta)+L*step_length(i))*(sum(p.*abs(h))/(K*eta)*1 + d*sigma_z^2/(M_list(i)*eta*K^2));
+end
 [c, c_heur, c_factor] = getC(M_list, h, m, L, sigma_z, step_length);
 final_convergence = c.^(budget./(alpha+M_list));
 final_convergence_heur = c_heur.^(budget./(alpha+M_list));
-final_convergence_convex = c_factor./(budget./(alpha+M_list));
-[~, prediction] = sort(final_convergence)
-[~, prediction_convex] = sort(final_convergence_convex)
+final_convergence_convex = c_factor./(budget./(alpha+M_list))
+
+plot_bound = true;
+%Plot
+if plot_bound == true
+    % Prepare some parameters independent of M
+    optimal_beta = (X'*X)\X'*y;
+    r_0 = norm(optimal_beta-beta_g_init)^2;
+    step_length = 1/L;
+    % Loop through M
+    M_list = 1:0.1:8;
+    bound = zeros(length(M_list), 1);
+    i = 1;
+    for M = M_list
+        [p, eta] = power_control(h, sigma_z, M_list(i));
+        [c, c_heur, c_factor] = getC(M, h, m, L, sigma_z, step_length);
+        convergence_term = L/2*c.^(budget/(alpha+M))*r_0;
+        final_error_term = step_length^2*L/(2*K*eta*(1-c))*(sum(p.*abs(h).^2) + d*sigma_z^2/(M*K));
+        bound(i) = convergence_term + final_error_term;
+        i = i + 1;
+    end
+    figure;
+    plot(M_list, bound)
+    xlabel("M")
+    ylabel("FL loss gap upper bound")
+end
+
+% [~, prediction] = sort(final_convergence);
+% [~, prediction_convex] = sort(final_convergence_convex);
 %% Everything above this line can be generated once and kept for multiple experiments
 clc
-M = 32;
+M = 8;
+[p, eta] = power_control(h, sigma_z, M);
+% step_length = sqrt(eta)/L*sum(sqrt(p).*abs(h))/sum(p.*abs(h).^2);
+step_length = 1/L;
 % [table1, table2, table3] = power_control_lookup(h, 0, M, K, m, L);
-num_tests = 100;
+num_tests = 25;
 mean_err_tests = 0;
 mean_loss = zeros(budget, 1);
 grad_history = zeros(ceil(budget/M), d+1);
@@ -64,7 +97,9 @@ norm_history = zeros(ceil(budget/M), 1);
 step_reduce = 1;
 schedule_type = "constant";
 c_2 = 0;
-T = 0;
+c_3 = 0;
+T_1 = 0;
+T_2 = 0;
 if schedule_type == "constant"
     c_1 = M;
 elseif schedule_type == "lin_increase"
@@ -74,11 +109,13 @@ elseif schedule_type == "lin_decrease"
     c_2 = 0.5;
 elseif schedule_type == "cutoff"
     c_1 = 4;
-    T = 20;
+    T_1 = 50;
     c_2 = 1;
+    T_2 = 100;
+    c_3 = 4;
 end
 
-retransmission_schedule = setTransmissionSchedule(schedule_type, budget, c_1, c_2, T);
+retransmission_schedule = setTransmissionSchedule(schedule_type, budget, c_1, c_2, c_3, T_1, T_2);
 calculate_bound = false;
 if calculate_bound == true
     sigma_gradient = calculateSigmaG(length(true_beta), budget, X, Y, beta_g_init, step_length);
@@ -129,6 +166,8 @@ for t = 1:num_tests
         if mod(r, 300) == 0
             step_length = step_length*step_reduce;
         end
+        
+        
     end
 
     %Fill remaining losses with straight line
